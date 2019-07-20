@@ -82,7 +82,9 @@ int EthanolMax = 80;          /* Percentage to trigger Max Ethanol Switch. */
 int FuelTempMax = 60;         /* Percentage to trigger Max Fuel Temp Switch. */
 int PROFILE = 0;              /* Default profile using hard coded settings. */
 bool QUITE = 0;               /* Stops comport traffic for CLI usage. */
-bool CHANNELS = 1;
+bool CHANNELS = 1;            /* Set how many channel 0=(1) 1=(2). */
+bool FLEXOFF;                 /* Disables FlexCode. */
+bool KNOCKOFF;                /* Disables KnockCode. */
 
 //Function for transfering SPI data to the SPU of Knock Board
 byte COM_SPI(byte TX_data) {
@@ -113,7 +115,7 @@ void setupTimer()   // setup timer1
   TCCR1B = 132;    // (10000100) Falling edge trigger, Timer = CPU Clock/256, noise cancellation on
   TCCR1C = 0;      // normal mode
   TIMSK1 = 33;     // (00100001) Input capture and overflow interupts enabled
-  TCNT1 = 0;       // start from 0
+  TCNT1  = 0;      // start from 0
 }
 
 ISR(TIMER1_CAPT_vect)    // PULSE DETECTED!  (interrupt automatically triggered, not called by main program)
@@ -151,10 +153,10 @@ void getfueltemp(int inpPin) {
   float TEMP2 = float(10) * float(PERIOD);               //Convert ms to whole number
   TEMPERATURE = ((40.25 * TEMP2) - 81.25);               //Calculate temperature for display (1ms = -40, 5ms = 80)
   if (TEMPERATURE > 125) {
-    TEMPERATURE = 125; //Prevent temperature overflow
+    TEMPERATURE = 125;                                   //Prevent temperature overflow
   }
   if (TEMPERATURE < -40) {
-    TEMPERATURE = -40; //Prevent temperature underflow
+    TEMPERATURE = -40;                                   //Prevent temperature underflow
   }
 }
 
@@ -172,9 +174,11 @@ void setup() {
   if (analogRead(A1) < 50)  {    PROFILE = 2;  }
   if (analogRead(A2) < 50)  {    PROFILE = 3;  }
 
-  //Main Settings
+  //Main Settings for boot
   if (EEPROM.read(0) == 1){CHANNELS = 1;} //Channel
   if (EEPROM.read(1) == 1){QUITE = 1;} //Quite Boot
+  if (EEPROM.read(2) == 1){FLEXOFF = 1;) //Disable Flex
+  if (EEPROM.read(3) == 1){KNOCKOFF = 1;) //Disable Knock
   
   //Loads Settings from internal memory
   LoadSettings(1);
@@ -238,6 +242,8 @@ void KnockSETCH(int i)
 //Main operation function.
 void loop() {
   time_now = millis();                        //Timer for delays with out thread freeze.
+  if (!KNOCKOFF)                              //Checks if Knock code is enabled
+  {
   KnockSETCH(0);                              //Switches to Channel 1
   KnockMain();                                //Reads Buffer
   if (CHANNELS)                               //Checks if in single channel mode.
@@ -245,7 +251,8 @@ void loop() {
   KnockSETCH(1);                              //Switches to Channel 2
   KnockMain();                                //Reads Buffer
   }
-  FlexMain();                                 //Reads counters from FlexSensor
+  }
+  if (!FLEXOFF){  FlexMain();}                 //Reads counters from FlexSensor if Flexcode enabled.
   if (time_now >= SerialTimer + DigitalSpeed) //Check if enough time passed to push Serial Information
   {
   SerialTimer = time_now;                     //Reset Serial timer

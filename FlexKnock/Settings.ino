@@ -6,6 +6,9 @@
  * Base Settings Pointers: 0 - 99
     CHANNELS                       0
     QUITEBOOT                      1
+    FLEXOFF                        2
+    KNOCKOFF                       3
+    BOREMM                         4 & 5
  * 
  * Profile 1
  * [Start Location:] 100
@@ -32,10 +35,10 @@
  *
  * 
 */
-
+//Reads from location given and prints in Serial
 void RAWREAD(int RAWIN)
 {
-  Serial.println(EEPROM.read(RAWIN));
+  Serial.println(String("RR:") + EEPROM.read(RAWIN));
 }
 
 void RAWWRITE(int ADDR, int VALUE)
