@@ -4,7 +4,8 @@
  * Memory Table:
  * 
  * Base Settings Pointers: 0 - 99
- * 
+    CHANNELS                       0
+    QUITEBOOT                      1
  * 
  * Profile 1
  * [Start Location:] 100
@@ -31,6 +32,16 @@
  *
  * 
 */
+
+void RAWREAD(int RAWIN)
+{
+  Serial.println(EEPROM.read(RAWIN));
+}
+
+void RAWWRITE(int ADDR, int VALUE)
+{
+  EEPROM.update(ADDR, VALUE);  
+}
 
 //Write byte of data to location
 void WRITEBYTE(int ADDR, int VALUE)

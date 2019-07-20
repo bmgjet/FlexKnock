@@ -12,8 +12,11 @@ void SerialMain()
   Serial.println(String("Output:") + float(TOUT * 5.0 / 255) + String("V"));
   Serial.println(String("Knock CH1:") + KNOCKP1 + String("%"));
   Serial.println(String("Output:") + float(KNOCKP1 * 5.0 / 255) + String("V"));
+    if (CHANNELS)                               //Checks if in single channel mode.
+  {
   Serial.println(String("Knock CH2:") + KNOCKP2 + String("%"));
   Serial.println(String("Output:") + float(KNOCKP2 * 5.0 / 255) + String("V"));
+  }
   Serial.println(String(" "));
   }
  if (Serial.available() > 0) {ProgramSettings(Serial.readString());} // read the serial port for Commands
@@ -71,6 +74,13 @@ else if  (SET == "HELP")
   Serial.println(F("SET-SAVE        Saves to selected profile"));
   Serial.println(F("SET-LOAD        Shows Currently loaded settings."));
   Serial.println(F("SET-QUITE       Stop/Start Comport Traffic."));
+}
+//Raw read 
+//Raw write to internal memory over comport
+else if  (SET == "RAWR"){ RAWREAD(GET.toInt());}
+else if  (SET == "RAWW")
+{
+  RAWWRITE(getValue(GET, ':', 0).toInt(), getValue(GET, ':', 1).toInt());
 }
 else{Serial.println(F("Unknown Command!"));}
 }

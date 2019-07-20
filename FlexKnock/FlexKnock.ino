@@ -82,6 +82,7 @@ int EthanolMax = 80;          /* Percentage to trigger Max Ethanol Switch. */
 int FuelTempMax = 60;         /* Percentage to trigger Max Fuel Temp Switch. */
 int PROFILE = 0;              /* Default profile using hard coded settings. */
 bool QUITE = 0;               /* Stops comport traffic for CLI usage. */
+bool CHANNELS = 1;
 
 //Function for transfering SPI data to the SPU of Knock Board
 byte COM_SPI(byte TX_data) {
@@ -170,6 +171,10 @@ void setup() {
   if (analogRead(A0) < 50)  {    PROFILE = 1;  }
   if (analogRead(A1) < 50)  {    PROFILE = 2;  }
   if (analogRead(A2) < 50)  {    PROFILE = 3;  }
+
+  //Main Settings
+  if (EEPROM.read(0) == 1){CHANNELS = 1;} //Channel
+  if (EEPROM.read(1) == 1){QUITE = 1;} //Quite Boot
   
   //Loads Settings from internal memory
   LoadSettings(1);
@@ -235,8 +240,11 @@ void loop() {
   time_now = millis();                        //Timer for delays with out thread freeze.
   KnockSETCH(0);                              //Switches to Channel 1
   KnockMain();                                //Reads Buffer
+  if (CHANNELS)                               //Checks if in single channel mode.
+  {
   KnockSETCH(1);                              //Switches to Channel 2
   KnockMain();                                //Reads Buffer
+  }
   FlexMain();                                 //Reads counters from FlexSensor
   if (time_now >= SerialTimer + DigitalSpeed) //Check if enough time passed to push Serial Information
   {
