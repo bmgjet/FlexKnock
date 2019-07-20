@@ -81,6 +81,7 @@ int KnockMaxLED = 80;         /* Percentage to trigger Max Knock LED on Board. *
 int EthanolMax = 80;          /* Percentage to trigger Max Ethanol Switch. */
 int FuelTempMax = 60;         /* Percentage to trigger Max Fuel Temp Switch. */
 int PROFILE = 0;              /* Default profile using hard coded settings. */
+bool QUITE = 0;               /* Stops comport traffic for CLI usage. */
 
 //Function for transfering SPI data to the SPU of Knock Board
 byte COM_SPI(byte TX_data) {
