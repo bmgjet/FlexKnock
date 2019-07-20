@@ -18,21 +18,13 @@ void KnockMain()
     //Convert ADC-value to percentage.
     float knock_percentage = ((float)adcValue_UA / 1023) * 100;
 
-    //Set Limit LED if knock percentage reaches 80%.
-    if (knock_percentage >= 80) digitalWrite(LED_LIMIT, HIGH); else digitalWrite(LED_LIMIT, LOW);
-if (CHSelect)
-{
-    KNOCKP2 = knock_percentage;
-}
-else
-{
-    KNOCKP1 = knock_percentage;
-}
-   
-    //Set status LED off, operation stops. Inlcuding additional delay time for visibility.
-    //delay(100);
-    digitalWrite(LED_STATUS, LOW);
+    //Set Limit LED if knock percentage reaches set point.
+    if (knock_percentage >= KnockMaxLED) digitalWrite(LED_LIMIT, HIGH); else digitalWrite(LED_LIMIT, LOW);
+    if (CHSelect){KNOCKP2 = knock_percentage;}  //Sets Channel 2 Knock percentage
+    else{KNOCKP1 = knock_percentage;}           //Sets Channel 1 Knock Percentage
+
+    //Turn LED off, operation completed
+    digitalWrite(LED_STATUS, LOW);              
     
-    //Delay to update serial output every ~500ms. 
-    //delay(400);
+
 }

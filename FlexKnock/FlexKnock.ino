@@ -52,6 +52,7 @@
 
 //Define global variables
 volatile uint16_t REVTICK;    /* Ticks per revolution. */
+unsigned long time_now = 0;   /* For delay repacement. */
 int HZ;                       /* Unsigned 16bit integer for storing HZ input. */
 int ETHANOL = 0;              /* Store ethanol percentage here. */
 int EOUT = 0;                 /* Store ethanol output voltage 0-5v. */
@@ -61,10 +62,13 @@ float KNOCKP2 = 0;            /* Store knock percentage CH1. */
 int TOUT = 0;                 /* Store tempture output voltage 0-5v. */
 int DUTY;                     /* Duty cycle (0.0-100.0). */
 float PERIOD;                 /* Store period time here (eg.0.0025 s). */
-static long HIGHTIME = 0;
-static long LOWTIME = 0;
-static long TEMPPULSE;
-bool CHSelect;
+static long HIGHTIME = 0;     /* Counter for Flex. */
+static long LOWTIME = 0;      /* Counter for Flex. */
+static long TEMPPULSE;        /* Counter For Flex. */
+bool CHSelect;                /* Switches between Channels. */
+unsigned long SerialTimer = 0;/* Value from last time serial updated. */
+int DigitalSpeed = 100;       /* User set speed for Serial update. */
+int KnockMaxLED = 80;         /* Percentage to trigger Max Knock LED on Board. */
 
 //Function for transfering SPI data to the SPU of Knock Board
 byte COM_SPI(byte TX_data) {
@@ -114,6 +118,7 @@ void getfueltemp(int inpPin) {
   HIGHTIME = 0;
   LOWTIME = 0;
 
+//Count length of the Pulse in the PWM signal
   TEMPPULSE = pulseIn(FLEXIN, HIGH);
   if (TEMPPULSE > HIGHTIME) {
     HIGHTIME = TEMPPULSE;
@@ -123,6 +128,7 @@ void getfueltemp(int inpPin) {
   if (TEMPPULSE > LOWTIME) {
     LOWTIME = TEMPPULSE;
   }
+
 
   DUTY = ((100 * (HIGHTIME / (double (LOWTIME + HIGHTIME))))); //Calculate duty cycle (integer extra decimal)
   float T = (float(1.0 / float(HZ)));                    //Calculate total period time
@@ -139,15 +145,16 @@ void getfueltemp(int inpPin) {
 
 //Function to set up device for operation.
 void setup() {
-  Serial.begin(38400);      //debug over serial
+  Serial.begin(38400);      //Open Serial Output
 
 
   //To Do:
-  //Load settings from eeprom
+  //Load settings from eeprom if have been set
   //        SPU_SET_BAND_PASS_FREQUENCY    0b00101010    /* Setting band pass frequency to 7.27kHz */
   //        SPU_SET_PROGRAMMABLE_GAIN      0b10100010    /* Setting programmable gain to 0.381 */
   //        SPU_SET_INTEGRATOR_TIME        0b11001010    /* Setting programmable integrator time constant to 100µs */
   //        MEASUREMENT_WINDOW_TIME        3000 
+  //        DigitalSpeed
 
   //Set up SPI.
   SPI.begin();
@@ -175,7 +182,6 @@ void setup() {
   digitalWrite(SPU_HOLD_PIN, LOW);
 
   //Start of operation. (Flash LED's).
-  //Serial.print("Device reset.\n\r");
   digitalWrite(LED_STATUS, HIGH);
   digitalWrite(LED_LIMIT, HIGH);
   delay(200);
@@ -189,16 +195,17 @@ void setup() {
 void KnockSETCH(int i)
 {
   COM_SPI(SPU_SET_PRESCALAR_6MHz);
-  if (i == 0)
+  if (i == 0)                     //Channel One
   {
     COM_SPI(SPU_SET_CHANNEL_1);
     CHSelect = false;
   }
-  else
+  else                            //Channel Two
   {
     COM_SPI(SPU_SET_CHANNEL_2);
     CHSelect = true;
   }
+  //Resets the monitoring perimeters
   COM_SPI(SPU_SET_BAND_PASS_FREQUENCY);
   COM_SPI(SPU_SET_PROGRAMMABLE_GAIN);
   COM_SPI(SPU_SET_INTEGRATOR_TIME);
@@ -207,10 +214,15 @@ void KnockSETCH(int i)
 
 //Main operation function.
 void loop() {
-  KnockSETCH(0);
-  KnockMain();
-  KnockSETCH(1);
-  KnockMain();
-  FlexMain();
-  SerialMain();
+  time_now = millis();                        //Timer for delays with out thread freeze.
+  KnockSETCH(0);                              //Switches to Channel 1
+  KnockMain();                                //Reads Buffer
+  KnockSETCH(1);                              //Switches to Channel 2
+  KnockMain();                                //Reads Buffer
+  FlexMain();                                 //Reads counters from FlexSensor
+  if (time_now >= SerialTimer + DigitalSpeed) //Check if enough time passed to push Serial Information
+  {
+  SerialTimer = time_now;                     //Reset Serial timer
+  SerialMain();                               //Do Serial Port work
+  }
 }

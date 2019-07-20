@@ -8,7 +8,7 @@ void FlexMain()
 
   //calculate ethanol percentage
     if (HZ > 50)                // Avoid dividing by zero
-    {ETHANOL = (HZ-50);}
+    {ETHANOL = (HZ-50);}        
     else
     {ETHANOL = 0;}
     if (ETHANOL > 99)           // Avoid overflow in PWM
@@ -16,8 +16,11 @@ void FlexMain()
 
   //MAP Values to sane range.
   //Outputs to analog pin
-  EOUT = map(ETHANOL, 0, 99, 0, 255);
+  //Ethanol 0-5V
+  EOUT = map(ETHANOL, 0, 99, 0, 255);      
   analogWrite(FLEXOUTE, EOUT);
+
+  //Fuel Temp 0-5V
   TOUT = map(TEMPERATURE, -40, 125, 0, 255);
   analogWrite(FLEXOUTT, TOUT);
 }
