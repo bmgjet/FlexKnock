@@ -30,15 +30,17 @@
 
 //Define included headers.
 #include <SPI.h>
+#include <EEPROM.h>
+#include <avr/pgmspace.h>
 
 //Define registers used.
 #define           SPU_SET_PRESCALAR_6MHz         0b01000100    /* 6MHz prescalar with SDO active */
-#define           SPU_SET_CHANNEL_1              0b11100000    /* Setting active channel to 1 */
-#define           SPU_SET_CHANNEL_2              0b11100001    /* Setting active channel to 1 */
-#define           SPU_SET_BAND_PASS_FREQUENCY    0b00101010    /* Setting band pass frequency to 7.27kHz */
-#define           SPU_SET_PROGRAMMABLE_GAIN      0b10100010    /* Setting programmable gain to 0.381 */
-#define           SPU_SET_INTEGRATOR_TIME        0b11001010    /* Setting programmable integrator time constant to 100µs */
-#define           MEASUREMENT_WINDOW_TIME        3000          /* Defining the time window of measurement to 3ms. */
+byte              SPU_SET_CHANNEL_1 =            0xE0;         /* Setting active channel to 1 */
+byte              SPU_SET_CHANNEL_2 =            0xE1;         /* Setting active channel to 1 */
+byte              SPU_SET_BAND_PASS_FREQUENCY =  0x0A;         /* Setting band pass frequency to 7.27kHz */
+byte              SPU_SET_PROGRAMMABLE_GAIN =    0xA2;         /* Setting programmable gain to 0.381 */
+byte              SPU_SET_INTEGRATOR_TIME =      0xCA;         /* Setting programmable integrator time constant to 100µs */
+int               MEASUREMENT_WINDOW_TIME=       3000;         /* Defining the time window of measurement to 3ms. */
 
 //Define pin assignments.
 #define           SPU_NSS_PIN                    10            /* Pin used for chip select in SPI communication. */
@@ -78,6 +80,7 @@ int DigitalSpeed = 500;       /* User set speed for Serial update. */
 int KnockMaxLED = 80;         /* Percentage to trigger Max Knock LED on Board. */
 int EthanolMax = 80;          /* Percentage to trigger Max Ethanol Switch. */
 int FuelTempMax = 60;         /* Percentage to trigger Max Fuel Temp Switch. */
+int PROFILE = 0;              /* Default profile using hard coded settings. */
 
 //Function for transfering SPI data to the SPU of Knock Board
 byte COM_SPI(byte TX_data) {
@@ -157,8 +160,18 @@ void getfueltemp(int inpPin) {
 void setup() {
   Serial.begin(38400);      //Open Serial Output
 
+  //Sets up Profile Pins
+  pinMode(Profile1, INPUT_PULLUP);
+  pinMode(Profile2, INPUT_PULLUP);
+  pinMode(Profile3, INPUT_PULLUP);
+
+  //Select Profile
+  if (analogRead(A0) < 50)  {    PROFILE = 1;  }
+  if (analogRead(A1) < 50)  {    PROFILE = 2;  }
+  if (analogRead(A2) < 50)  {    PROFILE = 3;  }
+  
   //Loads Settings from internal memory
-  LoadSettings();
+  LoadSettings(1);
 
   //Set up SPI.
   SPI.begin();

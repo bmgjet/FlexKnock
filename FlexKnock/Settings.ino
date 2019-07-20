@@ -22,9 +22,21 @@
  * 
 */
 
-
-void LoadSettings()
+//Loads Settings from eeprom memory or outputs current loaded settings over com port.
+void LoadSettings(bool START)
 {
+  if (START) //Loads from Internal memory.
+  {
+  if (PROFILE == 1) {}
+  else if (PROFILE == 2) {}
+  else if (PROFILE == 3) {}
+    Serial.println(String("Loaded Profile") + PROFILE + String("!"));
+  }
+  else //Outputs Current loaded settings
+  {
+        Serial.println(String("SETTINGS:") + SPU_SET_BAND_PASS_FREQUENCY + String("|") + SPU_SET_PROGRAMMABLE_GAIN + String("|") + SPU_SET_INTEGRATOR_TIME + String("|") + MEASUREMENT_WINDOW_TIME
+        + String("|") + DigitalSpeed + String("|") + KnockMaxLED + String("|") + EthanolMax + String("|") + FuelTempMax + String("|") + TriggerMode);
+  }
   //To Do:
   //Load settings from eeprom if have been set
   //        SPU_SET_BAND_PASS_FREQUENCY    0b00101010    /* Setting band pass frequency to 7.27kHz */
@@ -38,13 +50,13 @@ void LoadSettings()
   // TriggerMode
 }
 
-
-void SaveSettings(                                                                                                                                                                                                                                            )
+//Saves settings to internal memory
+void SaveSettings()
 {
-  
+Serial.println(String("Saved Settings to Profile") + PROFILE + String("!")) ;
 }
 
-
+//Splits string into parts
 String getValue(String data, char separator, int index)
 {
   int found = 0;

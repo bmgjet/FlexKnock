@@ -1,3 +1,4 @@
+//Handles Knock Controller
 void KnockMain()
 {
     //Set status LED on, operation starts.
