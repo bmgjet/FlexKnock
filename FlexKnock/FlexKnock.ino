@@ -9,7 +9,6 @@
   2019 bmgjet.
   Device that uses arduino Nano to convert Knock and Flexfuel signals to 0-5V as well as provide a digital interface.
 
-
   PinOut:
   Arduino Nano
   D12 Knock %Out CH1 0-5V
@@ -22,7 +21,11 @@
   D4 Knock SPI
   D3 Flex Fuel Temp Out.
   D2 Knock %Out CH2 0-5V
-
+  
+     Profile 0 Select by default
+  A0 Profile 1 Select
+  A1 Profile 2 Select
+  A2 Profile 3 Select
 */
 
 //Define included headers.
@@ -49,6 +52,9 @@
 #define           FLEXOUTT                       3             /* Define Temperture output pin. */
 #define           KNOCKCH1                       12            /* Define CH1 Knock output pin. */
 #define           KNOCKCH2                       2             /* Define CH2 Knock output pin. */
+#define           Profile1                       0             /* Define Profile1 Switch Pin. */
+#define           Profile2                       1             /* Define Profile2 Switch Pin. */  
+#define           Profile3                       2             /* Define Profile3 Switch Pin. */
 
 //Define global variables
 volatile uint16_t REVTICK;    /* Ticks per revolution. */
@@ -66,9 +72,12 @@ static long HIGHTIME = 0;     /* Counter for Flex. */
 static long LOWTIME = 0;      /* Counter for Flex. */
 static long TEMPPULSE;        /* Counter For Flex. */
 bool CHSelect;                /* Switches between Channels. */
+bool TriggerMode;             /* Switches 0-5V to straight On or Off. */
 unsigned long SerialTimer = 0;/* Value from last time serial updated. */
-int DigitalSpeed = 100;       /* User set speed for Serial update. */
+int DigitalSpeed = 500;       /* User set speed for Serial update. */
 int KnockMaxLED = 80;         /* Percentage to trigger Max Knock LED on Board. */
+int EthanolMax = 80;          /* Percentage to trigger Max Ethanol Switch. */
+int FuelTempMax = 60;         /* Percentage to trigger Max Fuel Temp Switch. */
 
 //Function for transfering SPI data to the SPU of Knock Board
 byte COM_SPI(byte TX_data) {
@@ -81,6 +90,7 @@ byte COM_SPI(byte TX_data) {
 
   //Set chip select pin high, chip in use.
   digitalWrite(SPU_NSS_PIN, HIGH);
+
 
   //Print SPI debug response.
   //Serial.print("SPU_SPI: 0x");
@@ -147,14 +157,8 @@ void getfueltemp(int inpPin) {
 void setup() {
   Serial.begin(38400);      //Open Serial Output
 
-
-  //To Do:
-  //Load settings from eeprom if have been set
-  //        SPU_SET_BAND_PASS_FREQUENCY    0b00101010    /* Setting band pass frequency to 7.27kHz */
-  //        SPU_SET_PROGRAMMABLE_GAIN      0b10100010    /* Setting programmable gain to 0.381 */
-  //        SPU_SET_INTEGRATOR_TIME        0b11001010    /* Setting programmable integrator time constant to 100µs */
-  //        MEASUREMENT_WINDOW_TIME        3000 
-  //        DigitalSpeed
+  //Loads Settings from internal memory
+  LoadSettings();
 
   //Set up SPI.
   SPI.begin();
