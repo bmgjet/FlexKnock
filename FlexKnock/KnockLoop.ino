@@ -24,8 +24,48 @@ void KnockMain()
     if (CHSelect){KNOCKP2 = knock_percentage;}  //Sets Channel 2 Knock percentage
     else{KNOCKP1 = knock_percentage;}           //Sets Channel 1 Knock Percentage
 
+
+  
     //Turn LED off, operation completed
     digitalWrite(LED_STATUS, LOW);              
     
 
+}
+
+void KnockLogic()
+{
+  if (!KNOCKOFF)                              //Checks if Knock code is enabled
+  {
+  KnockSETCH(0);                              //Switches to Channel 1
+  KnockMain();                                //Reads Buffer
+  KOUT1 = map(KNOCKP1, 0, 99, 0, 255);      
+  analogWrite(KNOCKCH1, KOUT1);
+    if (CHANNELS)                               //Checks if in single channel mode.
+    {
+    KnockSETCH(1);                              //Switches to Channel 2
+    KnockMain();                                //Reads Buffer
+    KOUT2 = map(KNOCKP2, 0, 99, 0, 255);      
+    analogWrite(KNOCKCH2, KOUT2);
+    }
+  }
+}
+
+//Setup Knock options
+void KnockSETCH(int i)
+{
+  COM_SPI(SPU_SET_PRESCALAR_6MHz);
+  if (i == 0)                     //Channel One
+  {
+    COM_SPI(SPU_SET_CHANNEL_1);
+    CHSelect = false;
+  }
+  else                            //Channel Two
+  {
+    COM_SPI(SPU_SET_CHANNEL_2);
+    CHSelect = true;
+  }
+  //Resets the monitoring perimeters
+  COM_SPI(SPU_SET_BAND_PASS_FREQUENCY);
+  COM_SPI(SPU_SET_PROGRAMMABLE_GAIN);
+  COM_SPI(SPU_SET_INTEGRATOR_TIME);
 }

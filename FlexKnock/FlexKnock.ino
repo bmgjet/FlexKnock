@@ -19,7 +19,7 @@
   D6 Knock Limit LED
   A5 Knock Signal In
   D4 Knock SPI
-  D3 Flex Fuel Temp Out.
+  D3 Flex Fuel Temp Out 0-5V
   D2 Knock %Out CH2 0-5V
   
      Profile 0 Select by default
@@ -64,10 +64,13 @@ unsigned long time_now = 0;   /* For delay repacement. */
 int HZ;                       /* Unsigned 16bit integer for storing HZ input. */
 int ETHANOL = 0;              /* Store ethanol percentage here. */
 int EOUT = 0;                 /* Store ethanol output voltage 0-5v. */
+int TOUT = 0;                 /* Store tempture output voltage 0-5v. */
+int KOUT1 = 0;
+int KOUT2 = 0;
 float TEMPERATURE = 0;        /* Store fuel temperature here. */
 float KNOCKP1 = 0;            /* Store knock percentage CH1. */
 float KNOCKP2 = 0;            /* Store knock percentage CH1. */
-int TOUT = 0;                 /* Store tempture output voltage 0-5v. */
+
 int DUTY;                     /* Duty cycle (0.0-100.0). */
 float PERIOD;                 /* Store period time here (eg.0.0025 s). */
 static long HIGHTIME = 0;     /* Counter for Flex. */
@@ -129,133 +132,10 @@ ISR(TIMER1_OVF_vect)     // counter overflow/timeout
   REVTICK = 0;  // Ticks per second = 0
 }
 
-
-//Function for getting fuel temp from FlexSensor.
-void getfueltemp(int inpPin) {
-  HIGHTIME = 0;
-  LOWTIME = 0;
-
-//Count length of the Pulse in the PWM signal
-  TEMPPULSE = pulseIn(FLEXIN, HIGH);
-  if (TEMPPULSE > HIGHTIME) {
-    HIGHTIME = TEMPPULSE;
-  }
-
-  TEMPPULSE = pulseIn(inpPin, LOW);
-  if (TEMPPULSE > LOWTIME) {
-    LOWTIME = TEMPPULSE;
-  }
-
-
-  DUTY = ((100 * (HIGHTIME / (double (LOWTIME + HIGHTIME))))); //Calculate duty cycle (integer extra decimal)
-  float T = (float(1.0 / float(HZ)));                    //Calculate total period time
-  float PERIOD = float(100 - DUTY) * T;                  //Calculate the active period time (100-duty)*T
-  float TEMP2 = float(10) * float(PERIOD);               //Convert ms to whole number
-  TEMPERATURE = ((40.25 * TEMP2) - 81.25);               //Calculate temperature for display (1ms = -40, 5ms = 80)
-  if (TEMPERATURE > 125) {
-    TEMPERATURE = 125;                                   //Prevent temperature overflow
-  }
-  if (TEMPERATURE < -40) {
-    TEMPERATURE = -40;                                   //Prevent temperature underflow
-  }
-}
-
-//Function to set up device for operation.
-void setup() {
-  Serial.begin(38400);      //Open Serial Output
-
-  //Sets up Profile Pins
-  pinMode(Profile1, INPUT_PULLUP);
-  pinMode(Profile2, INPUT_PULLUP);
-  pinMode(Profile3, INPUT_PULLUP);
-
-  //Select Profile
-  if (analogRead(A0) < 50)  {    PROFILE = 1;  }
-  if (analogRead(A1) < 50)  {    PROFILE = 2;  }
-  if (analogRead(A2) < 50)  {    PROFILE = 3;  }
-
-  //Main Settings for boot
-  if (EEPROM.read(0) == 1){CHANNELS = 1;} //Channel
-  if (EEPROM.read(1) == 1){QUITE = 1;} //Quite Boot
-  if (EEPROM.read(2) == 1){FLEXOFF = 1;) //Disable Flex
-  if (EEPROM.read(3) == 1){KNOCKOFF = 1;) //Disable Knock
-  
-  //Loads Settings from internal memory
-  LoadSettings(1);
-
-  //Set up SPI.
-  SPI.begin();
-  SPI.setClockDivider(SPI_CLOCK_DIV16);
-  SPI.setBitOrder(MSBFIRST);
-  SPI.setDataMode(SPI_MODE1);
-
-  //Set up Flex Counter
-  setupTimer();
-
-  //Set up digital output pins.
-  pinMode(SPU_NSS_PIN, OUTPUT);
-  pinMode(SPU_TEST_PIN, OUTPUT);
-  pinMode(SPU_HOLD_PIN, OUTPUT);
-  pinMode(LED_STATUS, OUTPUT);
-  pinMode(LED_LIMIT, OUTPUT);
-  pinMode(FLEXIN, INPUT);
-  pinMode(FLEXOUTE, OUTPUT);
-  pinMode(FLEXOUTT, OUTPUT);
-
-
-  //Set initial values.
-  digitalWrite(SPU_NSS_PIN, HIGH);
-  digitalWrite(SPU_TEST_PIN, HIGH);
-  digitalWrite(SPU_HOLD_PIN, LOW);
-
-  //Start of operation. (Flash LED's).
-  digitalWrite(LED_STATUS, HIGH);
-  digitalWrite(LED_LIMIT, HIGH);
-  delay(200);
-  digitalWrite(LED_STATUS, LOW);
-  digitalWrite(LED_LIMIT, LOW);
-  delay(200);
-
-}
-
-//Setup Knock options
-void KnockSETCH(int i)
-{
-  COM_SPI(SPU_SET_PRESCALAR_6MHz);
-  if (i == 0)                     //Channel One
-  {
-    COM_SPI(SPU_SET_CHANNEL_1);
-    CHSelect = false;
-  }
-  else                            //Channel Two
-  {
-    COM_SPI(SPU_SET_CHANNEL_2);
-    CHSelect = true;
-  }
-  //Resets the monitoring perimeters
-  COM_SPI(SPU_SET_BAND_PASS_FREQUENCY);
-  COM_SPI(SPU_SET_PROGRAMMABLE_GAIN);
-  COM_SPI(SPU_SET_INTEGRATOR_TIME);
-}
-
-
 //Main operation function.
 void loop() {
   time_now = millis();                        //Timer for delays with out thread freeze.
-  if (!KNOCKOFF)                              //Checks if Knock code is enabled
-  {
-  KnockSETCH(0);                              //Switches to Channel 1
-  KnockMain();                                //Reads Buffer
-  if (CHANNELS)                               //Checks if in single channel mode.
-  {
-  KnockSETCH(1);                              //Switches to Channel 2
-  KnockMain();                                //Reads Buffer
-  }
-  }
-  if (!FLEXOFF){  FlexMain();}                 //Reads counters from FlexSensor if Flexcode enabled.
-  if (time_now >= SerialTimer + DigitalSpeed) //Check if enough time passed to push Serial Information
-  {
-  SerialTimer = time_now;                     //Reset Serial timer
+  KnockLogic();
+  FlexMain();                 //Reads counters from FlexSensor if Flexcode enabled.
   SerialMain();                               //Do Serial Port work
-  }
 }

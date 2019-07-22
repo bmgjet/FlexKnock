@@ -1,27 +1,28 @@
 //Handles serial comunications
 void SerialMain()
 {
+ if (time_now >= SerialTimer + 100)//DigitalSpeed) //Check if enough time passed to push Serial Information
+  {
+  SerialTimer = time_now;                     //Reset Serial timer
   //Prints info over Serial Port.
   if (!QUITE) //Stops comport output.
   {
-  Serial.println(String(" "));
   Serial.println(F("FLEX-KNOCK:V1.0"));
   Serial.println(String("Ethanol:") + ETHANOL + String("%"));
-  Serial.println(String("Output:") + float(EOUT * 5.0 / 255) + String("V"));
-  Serial.println(String("Tempture:") + TEMPERATURE  + String("°C"));
-  Serial.println(String("Output:") + float(TOUT * 5.0 / 255) + String("V"));
+  Serial.println(String("(D11)Output:") + float(EOUT * 5.0 / 255) + String("V"));
+  Serial.println(String("Tempture:") + TEMPERATURE  + String("C"));
+  Serial.println(String("(D3)Output:") + float(TOUT * 5.0 / 255) + String("V"));
   Serial.println(String("Knock CH1:") + KNOCKP1 + String("%"));
-  Serial.println(String("Output:") + float(KNOCKP1 * 5.0 / 255) + String("V"));
+  Serial.println(String("(D12)Output:") + float(KOUT1 * 5.0 / 255) + String("V"));
     if (CHANNELS)                               //Checks if in single channel mode.
   {
   Serial.println(String("Knock CH2:") + KNOCKP2 + String("%"));
-  Serial.println(String("Output:") + float(KNOCKP2 * 5.0 / 255) + String("V"));
+  Serial.println(String("(D2)Output:") + float(KOUT2 * 5.0 / 255) + String("V"));
   }
-  Serial.println(String(" "));
   }
  if (Serial.available() > 0) {ProgramSettings(Serial.readString());} // read the serial port for Commands
 }
-
+}
 //Protocol List:
   //SET-BPF XX      SPU_SET_BAND_PASS_FREQUENCY          
   //SET-PG XX       SPU_SET_PROGRAMMABLE_GAIN 

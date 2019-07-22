@@ -38,7 +38,7 @@
 //Reads from location given and prints in Serial
 void RAWREAD(int RAWIN)
 {
-  Serial.println(String("RR:") + EEPROM.read(RAWIN));
+  Serial.println(String("RR:") + RAWIN + String("?") + EEPROM.read(RAWIN));
 }
 
 void RAWWRITE(int ADDR, int VALUE)
